@@ -44,6 +44,9 @@
       padding: 0 12px;
       font-size: 13px;
     }
+    .title-actions { display:flex; align-items:center; gap:4px; }
+    .title-actions button { border:1px solid transparent; background:transparent; color:#fff; border-radius:3px; padding:3px 6px; cursor:pointer; font-size:15px; }
+    .title-actions button:hover { background:rgba(255,255,255,.18); border-color:rgba(255,255,255,.25); }
     .title-text {
       font-weight: 600;
       letter-spacing: 0.5px;
@@ -350,22 +353,37 @@
     .navigation-pane.visible { display:block; }
     .focus-mode .title-bar, .focus-mode .tabs-bar, .focus-mode .ribbon-container, .focus-mode .status-bar { display:none; }
     .focus-mode .workspace { padding:20px; }
+
+    #tab-practice .ribbon-group { align-items:stretch; }
+    #tab-practice .group-content { min-height:64px; }
+    #editor a { color:#0563c1; text-decoration:underline; }
+    #editor .sim-bookmark { background:#fff2cc; border-bottom:1px dotted #b8860b; }
+    #editor .sim-wordart { display:inline-block; font-size:24pt; font-weight:bold; color:#2b579a; text-shadow:2px 2px 2px #bbb; transform:rotate(-4deg); padding:5px; }
+    #editor .sim-comment { background:#fff2cc; border-bottom:2px dotted #b8860b; }
+    #editor .sim-section-break { border-top:2px dashed #7f7f7f; margin:24px 0; padding-top:8px; color:#777; font-size:10pt; }
+
     @media print { body { height:auto; overflow:visible; background:white; } .title-bar,.tabs-bar,.ribbon-container,.status-bar,.backstage-overlay,.ruler,.navigation-pane {display:none!important} .workspace{display:block;padding:0;overflow:visible;background:white} .page-a4{box-shadow:none;margin:0;width:auto;min-height:0;padding:20mm;border:none!important} }
     @media(max-width:700px) { .page-a4 { width:100%; min-height:100%; padding:12mm; } .workspace { padding:10px 4px; } .backstage-sidebar {width:150px} .backstage-content {padding:18px} }
 
-  </style>
+  @media print {
+      body { height:auto !important; overflow:visible !important; background:#fff !important; }
+      .title-bar, .tabs-bar, .ribbon-container, .status-bar, .backstage-overlay, #navigationPane, #ruler { display:none !important; }
+      .workspace { display:block !important; overflow:visible !important; padding:0 !important; background:#fff !important; }
+      .page-a4 { box-shadow:none !important; margin:0 auto !important; }
+    }
+    </style>
 </head>
 <body>
 
   <!-- نوار عنوان -->
   <div class="title-bar">
-    <div>
-      <span>💾</span>
-      <span style="margin-left: 8px;">↩️</span>
-      <span style="margin-left: 4px;">↪️</span>
+    <div class="title-actions">
+      <button type="button" title="ذخیره (Ctrl+S)" onclick="saveDocument()">💾</button>
+      <button type="button" title="واگرد (Ctrl+Z)" onclick="execCmd('undo')">↩️</button>
+      <button type="button" title="انجام دوباره (Ctrl+Y)" onclick="execCmd('redo')">↪️</button>
     </div>
-    <div class="title-text">Document1 - Word Simulator</div>
-    <div>— ▢ ✕</div>
+    <div class="title-text" id="documentTitle">Document1 - Word Simulator</div>
+    <div aria-hidden="true">Word Simulator</div>
   </div>
 
   <!-- نوار زبانه‌ها (Tabs) -->
@@ -379,6 +397,7 @@
     <button class="tab-btn" data-tab="mailings">Mailings</button>
     <button class="tab-btn" data-tab="review">Review</button>
     <button class="tab-btn" data-tab="view">View</button>
+    <button class="tab-btn" data-tab="practice">تمرین‌های کتاب</button>
   </div>
 
   <!-- محفظه ابزارهای ریبون -->
@@ -485,6 +504,8 @@
         <div class="group-content" style="flex-direction: column; gap: 2px;">
           <button class="ribbon-btn" onclick="openFind()">🔍 Find</button>
           <button class="ribbon-btn" onclick="openReplace()">🔄 Replace</button>
+          <button class="ribbon-btn" onclick="startDictation()">🎙 Dictate</button>
+          <button class="ribbon-btn" onclick="openAIWritingPractice()">✨ AI Writing Practice</button>
           <button class="ribbon-btn" onclick="execCmd('selectAll')">Select All</button>
         </div>
         <div class="group-title">Editing</div>
@@ -510,11 +531,15 @@
 
       <!-- Tables -->
       <div class="ribbon-group">
-        <div class="group-content">
+        <div class="group-content" style="flex-direction:column;align-items:flex-start;gap:3px">
           <button class="ribbon-btn ribbon-btn-large" onclick="toggleTablePicker()">
             <span class="icon">田</span>
             <span>Table ▾</span>
           </button>
+          <button class="ribbon-btn" onclick="addTableRow()">＋ Add Row</button>
+          <button class="ribbon-btn" onclick="deleteTableRow()">－ Delete Row</button>
+          <button class="ribbon-btn" onclick="mergeTableCells()">⇔ Merge Cells</button>
+          <button class="ribbon-btn" onclick="splitTableCell()">▦ Split Cell</button>
         </div>
         <div class="group-title">Tables</div>
       </div>
@@ -554,7 +579,11 @@
           </button>
           <div style="display:flex; flex-direction:column; gap:2px;">
             <button class="ribbon-btn" onclick="insertSymbol('©')">© Symbol</button>
-            <button class="ribbon-btn" onclick="insertSymbol('∑')">∑ Math</button>
+            <button class="ribbon-btn" onclick="insertSymbol('∑')">∑ Symbol</button>
+            <button class="ribbon-btn" onclick="insertEquation()">x² Equation</button>
+            <button class="ribbon-btn" onclick="insertWordArt()">WordArt</button>
+            <button class="ribbon-btn" onclick="insertHyperlink()">🔗 Link</button>
+            <button class="ribbon-btn" onclick="insertBookmark()">🔖 Bookmark</button>
             <button class="ribbon-btn" onclick="execCmd('insertHorizontalRule')">― Line</button>
           </div>
         </div>
@@ -599,6 +628,7 @@
           <div style="display:flex; flex-direction:column; gap:2px;">
             <button class="ribbon-btn" onclick="setPageBorder('solid')">▢ Box Border</button>
             <button class="ribbon-btn" onclick="setPageBorder('double')">▣ Double Border</button>
+            <button class="ribbon-btn" onclick="setPageBorder('art')">✿ Art Border</button>
             <button class="ribbon-btn" onclick="setPageBorder('none')">✕ No Border</button>
           </div>
         </div>
@@ -611,18 +641,20 @@
       <div class="ribbon-group"><div class="group-content" style="flex-direction:column;align-items:flex-start;gap:4px">
         <div class="ribbon-btn-row"><button class="ribbon-btn" onclick="setPageOrientation('portrait')">↕ Portrait</button><button class="ribbon-btn" onclick="setPageOrientation('landscape')">↔ Landscape</button></div>
         <div class="ribbon-btn-row"><label>Margins <select class="select-tool" onchange="setMargins(this.value)"><option value="25.4">Normal</option><option value="12.7">Narrow</option><option value="38.1">Wide</option></select></label>
-        <label>Size <select class="select-tool" onchange="setPaperSize(this.value)"><option value="A4">A4</option><option value="Letter">Letter</option><option value="A3">A3</option></select></label></div>
+        <label>Size <select class="select-tool" onchange="setPaperSize(this.value)"><option value="A4">A4</option><option value="Letter">Letter</option><option value="A3">A3</option><option value="Vaziri">وزیری (تقریبی)</option><option value="Raghi">رقعی (تقریبی)</option><option value="Khesti">خشتی (تقریبی)</option><option value="Pocket">جیبی (تقریبی)</option></select></label></div>
       </div><div class="group-title">Page Setup</div></div>
       <div class="ribbon-group"><div class="group-content" style="flex-direction:column;align-items:flex-start;gap:4px">
         <div class="ribbon-btn-row"><button class="ribbon-btn" onclick="setColumns(1)">One</button><button class="ribbon-btn" onclick="setColumns(2)">Two Columns</button><button class="ribbon-btn" onclick="setColumns(3)">Three Columns</button></div>
         <div class="ribbon-btn-row"><label>Spacing <select class="select-tool" onchange="setLineSpacing(this.value)"><option value="1">Single</option><option value="1.15">1.15</option><option value="1.5">1.5</option><option value="2">Double</option></select></label>
-        <button class="ribbon-btn" onclick="setParagraphSpacing()">Paragraph Spacing</button></div>
+        <button class="ribbon-btn" onclick="setParagraphSpacing()">Paragraph Spacing</button>
+        <button class="ribbon-btn" onclick="insertSectionBreak()">Section Break</button></div>
       </div><div class="group-title">Paragraph</div></div>
     </div>
     <div class="tab-panel" id="tab-references">
       <div class="ribbon-group"><div class="group-content" style="flex-direction:column;gap:4px">
         <button class="ribbon-btn" onclick="insertTableOfContents()">📑 Table of Contents</button>
         <button class="ribbon-btn" onclick="insertFootnote()">¹ Insert Footnote</button>
+        <button class="ribbon-btn" onclick="updateTableOfContents()">Update TOC</button>
         <button class="ribbon-btn" onclick="insertCaption()">Figure Caption</button>
       </div><div class="group-title">Table of Contents</div></div>
       <div class="ribbon-group"><div class="group-content" style="flex-direction:column;gap:4px">
@@ -635,6 +667,9 @@
         <button class="ribbon-btn" onclick="insertMergeField('نام')">Insert «نام»</button>
         <button class="ribbon-btn" onclick="insertMergeField('نام خانوادگی')">Insert «نام خانوادگی»</button>
         <button class="ribbon-btn" onclick="insertMergeField('آدرس')">Insert «آدرس»</button>
+        <button class="ribbon-btn" onclick="manageMailingList()">قائمة گیرندگان</button>
+        <button class="ribbon-btn" onclick="createLabels()">Labels</button>
+        <button class="ribbon-btn" onclick="createEnvelope()">Envelope</button>
       </div><div class="group-title">Write & Insert Fields</div></div>
       <div class="ribbon-group"><div class="group-content" style="flex-direction:column;gap:4px">
         <button class="ribbon-btn" onclick="previewMerge()">👁 Preview Results</button>
@@ -663,6 +698,28 @@
         <button class="ribbon-btn" onclick="toggleFocusMode()">Focus Mode</button>
         <button class="ribbon-btn" onclick="window.print()">Print Layout / Print</button>
       </div><div class="group-title">Views</div></div>
+    </div>
+    <div class="tab-panel" id="tab-practice">
+      <div class="ribbon-group"><div class="group-content" style="flex-direction:column;gap:5px;align-items:stretch">
+        <select id="practiceSelect" class="select-tool" style="min-width:220px">
+          <option value="format">تمرین ۱: قالب‌بندی متن</option>
+          <option value="paragraph">تمرین ۲: پاراگراف و فهرست</option>
+          <option value="table">تمرین ۳: جدول هنرجویان</option>
+          <option value="picture">تمرین ۴: تصویر و شکل</option>
+          <option value="page">تمرین ۵: صفحه‌آرایی</option>
+          <option value="review">تمرین ۶: بازبینی و نظر</option>
+          <option value="toc">تمرین ۷: عنوان‌ها و فهرست مطالب</option>
+          <option value="mail">تمرین ۸: ادغام پستی</option>
+        </select>
+        <button class="ribbon-btn" onclick="loadPractice()">نمایش دستور تمرین</button>
+        <button class="ribbon-btn" onclick="checkPractice()">بررسی عملکرد من</button>
+      </div><div class="group-title">تمرین عملی</div></div>
+      <div class="ribbon-group" style="min-width:320px;max-width:520px">
+        <div class="group-content" style="display:block;width:100%">
+          <div id="practiceInstructions" style="font-size:12px;line-height:1.8;max-width:480px">یک تمرین انتخاب کنید و «نمایش دستور تمرین» را بزنید. بررسی خودکار، نشانه‌های قابل‌تشخیص در سند را می‌سنجد و جایگزین ارزیابی کامل معلم نیست.</div>
+          <div id="practiceFeedback" role="status" style="margin-top:5px;font-weight:bold;color:#2b579a"></div>
+        </div><div class="group-title">راهنما و بازخورد</div>
+      </div>
     </div>
   </div>
 
@@ -694,16 +751,18 @@
     <div class="backstage-sidebar">
       <button class="backstage-back-btn" onclick="closeBackstage()" title="Back">←</button>
       <div class="backstage-item" onclick="newDocument()">📄 New</div>
+      <div class="backstage-item" onclick="document.getElementById('openDocumentInput').click()">📂 Open HTML/TXT</div>
       <div class="backstage-item" onclick="saveDocument()">💾 Save</div>
       <div class="backstage-item" onclick="saveAsHtml()">🌐 Save As HTML</div>
       <div class="backstage-item" onclick="printDoc()">🖨️ Print</div>
       <div class="backstage-item" onclick="closeBackstage()">❌ Close</div>
     </div>
+    <input type="file" id="openDocumentInput" accept=".html,.htm,.txt,text/html,text/plain" hidden onchange="openDocumentFile(this)">
     <div class="backstage-content">
       <h2 style="color:var(--word-blue); margin-bottom: 20px;">Document Information</h2>
-      <p><strong>Name:</strong> Document1.docx</p>
+      <p><strong>Name:</strong> Document1</p>
       <p><strong>Status:</strong> Ready for editing</p>
-      <p style="margin-top: 15px; color:#666;">This simulator helps students practice Microsoft Office Word ribbons and tools without requiring Office installation.</p>
+      <p style="margin-top: 15px; color:#666;">This simulator helps students practice Microsoft Office Word ribbons and tools without requiring Office installation.</p><p style="margin-top:10px;color:#8a4b08;font-size:12px;">Save creates a Word-compatible HTML .doc file, not a native .docx file. Open supports HTML and TXT.</p>
     </div>
   </div>
 
@@ -738,11 +797,53 @@
       initTablePicker();
     });
 
+    let savedEditorRange = null;
+    let documentDirty = false;
+
+    function setDirty(value) {
+      documentDirty = !!value;
+      const title = document.getElementById('documentTitle');
+      if (!title) return;
+      const base = title.textContent.replace(/^●\s*/, '').replace(/\s*\*$/, '').replace(/\s*-\s*Word Simulator$/i, '');
+      title.textContent = (documentDirty ? '● ' : '') + (base || 'Document1') + ' - Word Simulator';
+    }
+
+    function saveEditorSelection() {
+      const editor = document.getElementById('editor');
+      const sel = window.getSelection();
+      if (!editor || !sel || !sel.rangeCount) return;
+      const range = sel.getRangeAt(0);
+      if (editor.contains(range.commonAncestorContainer)) savedEditorRange = range.cloneRange();
+    }
+
+    function restoreEditorSelection() {
+      const editor = document.getElementById('editor');
+      if (!editor) return;
+      editor.focus();
+      const sel = window.getSelection();
+      if (savedEditorRange && editor.contains(savedEditorRange.commonAncestorContainer)) {
+        sel.removeAllRanges();
+        sel.addRange(savedEditorRange);
+      }
+    }
+
+    document.addEventListener('selectionchange', saveEditorSelection);
+    document.addEventListener('DOMContentLoaded', () => {
+      const ribbon = document.querySelector('.ribbon-container');
+      if (ribbon) ribbon.addEventListener('mousedown', saveEditorSelection);
+      const editor = document.getElementById('editor');
+      if (editor) editor.addEventListener('input', () => setDirty(true));
+    });
+
     // --- اجرای دستورات ویرایشگر ---
     function execCmd(command, value = null) {
-      document.execCommand(command, false, value);
+      restoreEditorSelection();
+      try { document.execCommand(command, false, value); }
+      catch (err) { console.warn('دستور اجرا نشد:', command, err); }
       const editor = document.getElementById('editor');
       if (editor) editor.focus();
+      saveEditorSelection();
+      setDirty(true);
       updateStatus();
     }
 
@@ -913,6 +1014,10 @@
         editor.style.border = '2px solid #2b579a';
       } else if (borderType === 'double') {
         editor.style.border = '4px double #2b579a';
+      } else if (borderType === 'art') {
+        editor.style.border = '8px ridge #2b579a';
+        editor.style.outline = '2px dotted #7fba00';
+        editor.style.outlineOffset = '-12px';
       }
     }
 
@@ -972,36 +1077,94 @@
     }
 
     function newDocument() {
-      if (confirm('سند جدید ایجاد شود؟ محتوای فعلی از بین می‌رود.')) {
-        const editor = document.getElementById('editor');
-        if (editor) editor.innerHTML = '<p><br></p>';
-        closeBackstage();
-        updateStatus();
-      }
+      if (!confirm(documentDirty ? 'تغییرات ذخیره‌نشده از بین می‌روند. سند جدید ایجاد شود؟' : 'سند جدید ایجاد شود؟')) return;
+      const editor = document.getElementById('editor');
+      if (editor) { editor.innerHTML = '<p><br></p>'; editor.style.cssText = ''; editor.setAttribute('dir', 'rtl'); }
+      const title = document.getElementById('documentTitle');
+      if (title) title.textContent = 'Document1 - Word Simulator';
+      closeBackstage();
+      setDirty(false);
+      updateStatus();
+    }
+
+    function getExportHtml() {
+      const editor = document.getElementById('editor');
+      const title = (document.getElementById('documentTitle')?.textContent || 'Document1')
+        .replace(/\s*-\s*Word Simulator\s*$/i, '').replace(/^●\s*/, '').trim() || 'Document1';
+      const clone = editor.cloneNode(true);
+      clone.removeAttribute('contenteditable');
+      clone.removeAttribute('spellcheck');
+      clone.removeAttribute('id');
+      const css = 'body{font-family:Tahoma,Arial,sans-serif;direction:rtl;line-height:1.7}table{border-collapse:collapse;width:100%}table,td,th{border:1px solid #666}td,th{padding:6px}img{max-width:100%;height:auto}';
+      return '<!DOCTYPE html><html lang="fa" dir="rtl"><head><meta charset="UTF-8"><title>' +
+        escapeHtml(title) + '</title><style>' + css + '</style></head><body>' + clone.innerHTML + '</body></html>';
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, ch => ({
+        '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+      })[ch]);
+    }
+
+    function downloadBlob(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
     }
 
     function saveDocument() {
-      const editor = document.getElementById('editor');
-      if (!editor) return;
-      const html = '<!DOCTYPE html><html lang="fa" dir="rtl"><head><meta charset="UTF-8"><title>Document1</title><style>body{font-family:Tahoma,Arial;direction:rtl;line-height:1.7}table,td,th{border:1px solid #666;border-collapse:collapse;padding:6px}img{max-width:100%}</style></head><body>' + editor.innerHTML + '</body></html>';
-      const blob = new Blob(['\\ufeff', html], { type: 'application/msword;charset=utf-8' });
-      const a = document.createElement('a'); const url = URL.createObjectURL(blob);
-      a.href = url; a.download = 'Document1.doc'; a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      // خروجی DOC، HTML سازگار با Word است؛ این فایل DOCX باینری واقعی نیست.
+      const blob = new Blob(['\ufeff', getExportHtml()], { type: 'application/msword;charset=utf-8' });
+      downloadBlob(blob, 'Document1.doc');
       closeBackstage();
+      setDirty(false);
     }
 
     function saveAsHtml() {
-      const editor = document.getElementById('editor');
-      if (!editor) return;
-      const html = '<!DOCTYPE html><html lang="fa" dir="rtl"><head><meta charset="UTF-8"><title>Document1</title></head><body>' + editor.innerHTML + '</body></html>';
-      const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'Document1.html';
-      a.click();
-      URL.revokeObjectURL(a.href);
+      const blob = new Blob(['\ufeff', getExportHtml()], { type: 'text/html;charset=utf-8' });
+      downloadBlob(blob, 'Document1.html');
       closeBackstage();
+      setDirty(false);
+    }
+
+    function openDocumentFile(input) {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      const ext = file.name.split('.').pop().toLowerCase();
+      if (!['html','htm','txt'].includes(ext)) {
+        alert('در این نسخه فقط فایل‌های HTML و TXT باز می‌شوند؛ DOCX واقعی هنوز پشتیبانی نمی‌شود.');
+        input.value = '';
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        const editor = document.getElementById('editor');
+        if (!editor) return;
+        if (ext === 'txt') {
+          editor.textContent = String(reader.result || '');
+          editor.innerHTML = editor.innerHTML.replace(/\n/g, '<br>');
+        } else {
+          const parsed = new DOMParser().parseFromString(String(reader.result || ''), 'text/html');
+          parsed.body.querySelectorAll('script,style,iframe,object,embed,link,meta').forEach(n => n.remove());
+          editor.innerHTML = parsed.body.innerHTML || '<p><br></p>';
+          editor.querySelectorAll('*').forEach(el => {
+            [...el.attributes].forEach(attr => { if (/^on/i.test(attr.name)) el.removeAttribute(attr.name); });
+          });
+        }
+        const title = document.getElementById('documentTitle');
+        if (title) title.textContent = file.name.replace(/\.(html?|txt)$/i, '') + ' - Word Simulator';
+        closeBackstage();
+        setDirty(false);
+        updateStatus();
+        input.value = '';
+      };
+      reader.onerror = () => alert('خواندن فایل ناموفق بود.');
+      reader.readAsText(file, 'UTF-8');
     }
 
     function printDoc() {
@@ -1014,9 +1177,9 @@
       const editor = document.getElementById('editor');
       const status = document.getElementById('statusWords');
       if (!editor || !status) return;
-      const text = editor.innerText.trim();
-      const words = text ? text.split(/\s+/).length : 0;
-      status.innerText = 'Page 1 of 1 | Words: ' + words;
+      const text = (editor.innerText || '').replace(/\u00a0/g, ' ').trim();
+      const words = text ? text.split(/\s+/u).filter(Boolean).length : 0;
+      status.innerText = 'Editing area | Words: ' + words;
     }
 
     // به‌روزرسانی وضعیت هنگام تایپ
@@ -1032,8 +1195,14 @@
     function setMargins(mm) { document.getElementById('editor').style.padding=mm+'mm'; }
     function setPaperSize(size) {
       const e=document.getElementById('editor');
-      const dims={A4:['210mm','297mm'],Letter:['8.5in','11in'],A3:['297mm','420mm']};
+      const dims={
+        A4:['210mm','297mm'], Letter:['8.5in','11in'], A3:['297mm','420mm'],
+        Vaziri:['165mm','235mm'], Raghi:['140mm','210mm'], Khesti:['215mm','215mm'], Pocket:['100mm','190mm']
+      };
+      if(!e || !dims[size]) return;
       e.style.width=dims[size][0]; e.style.minHeight=dims[size][1];
+      e.dataset.paperSize=size;
+      setDirty(true);
     }
     function setColumns(n) {
       const e=document.getElementById('editor'); e.style.columnCount=String(n); e.style.columnGap='24px';
@@ -1059,8 +1228,15 @@
     }
     function insertNodeAtCaret(node) {
       const sel=window.getSelection(); const e=document.getElementById('editor');
-      if(sel&&sel.rangeCount&&e.contains(sel.anchorNode)){const r=sel.getRangeAt(0);r.deleteContents();r.insertNode(node);r.setStartAfter(node);r.collapse(true);sel.removeAllRanges();sel.addRange(r);}
-      else e.appendChild(node); e.focus(); updateStatus();
+      if(!e) return;
+      if(sel&&sel.rangeCount&&e.contains(sel.anchorNode)){
+        const r=sel.getRangeAt(0); r.deleteContents();
+        let lastInserted = node;
+        if(node && node.nodeType === Node.DOCUMENT_FRAGMENT_NODE) lastInserted = node.lastChild;
+        r.insertNode(node);
+        if(lastInserted && lastInserted.parentNode) { r.setStartAfter(lastInserted); r.collapse(true); sel.removeAllRanges(); sel.addRange(r); }
+      } else e.appendChild(node);
+      e.focus(); updateStatus();
     }
     function insertFootnote() {
       const t=prompt('متن پاورقی را وارد کنید:'); if(t===null)return;
@@ -1086,12 +1262,314 @@
     function toggleNavigation() { document.getElementById('navigationPane').classList.toggle('visible'); }
     function toggleFocusMode() { document.body.classList.toggle('focus-mode'); }
     function searchNavigation(q) { const out=document.getElementById('navResults');out.innerHTML='';if(!q)return;const e=document.getElementById('editor');const nodes=[...e.querySelectorAll('h1,h2,h3,p,li')];let hits=0;nodes.forEach(n=>{if(n.innerText.toLowerCase().includes(q.toLowerCase())){const b=document.createElement('button');b.style.cssText='display:block;width:100%;text-align:right;padding:6px;margin:3px 0';b.textContent=n.innerText.slice(0,100);b.onclick=()=>{n.scrollIntoView({behavior:'smooth',block:'center'});};out.appendChild(b);hits++;}});if(!hits)out.textContent='موردی پیدا نشد.';}
+
+    // --- ابزارهای تکمیلی همسو با پودمان کتاب ---
+    function startDictation() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        alert('مرورگر فعلی از تبدیل گفتار به متن پشتیبانی نمی‌کند. در نسخه دسکتاپ Chrome یا Edge امتحان کنید.');
+        return;
+      }
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'fa-IR';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+      recognition.onresult = event => {
+        const spoken = event.results?.[0]?.[0]?.transcript || '';
+        if (spoken) { insertNodeAtCaret(document.createTextNode(spoken + ' ')); setDirty(true); }
+      };
+      recognition.onerror = event => alert('تشخیص گفتار متوقف شد: ' + (event.error || 'خطای نامشخص'));
+      recognition.start();
+      alert('حالا صحبت کنید. برای استفاده از میکروفون، اجازه مرورگر را تأیید کنید.');
+    }
+
+    function openAIWritingPractice() {
+      const task = prompt('تمرین هوش مصنوعی: موضوع یا دستور نوشتن را وارد کنید. این نسخه مستقل به سرویس هوش مصنوعی متصل نیست و فقط محیط تمرین را فراهم می‌کند:', 'یک نامه رسمی به معلم درباره غیبت بنویس');
+      if (task === null || !task.trim()) return;
+      const draft = prompt('متن پیشنهادی خود را بنویسید تا به‌عنوان پیش‌نویس تمرینی وارد سند شود. برای تولید واقعی متن با هوش مصنوعی، باید سرویس جداگانه‌ای متصل شود:', 'موضوع: ' + task + '\nبا سلام و احترام،\n\nمتن نامه را اینجا تکمیل کنید.\n\nبا تشکر');
+      if (draft === null) return;
+      const box = document.createElement('div');
+      box.style.cssText = 'border:1px solid #8a8886;background:#f8f8f8;padding:10px;margin:8px 0;white-space:pre-wrap';
+      const label = document.createElement('strong'); label.textContent = 'پیش‌نویس تمرینی (AI Practice):\n';
+      const body = document.createElement('div'); body.textContent = draft;
+      box.append(label, body); insertNodeAtCaret(box); setDirty(true);
+    }
+
+    function insertEquation() {
+      const expr = prompt('فرمول را به صورت متنی وارد کنید (مثال: y = x² + 5x + 4):', 'y = x² + 5x + 4');
+      if (expr === null || !expr.trim()) return;
+      const span = document.createElement('span');
+      span.textContent = expr;
+      span.style.cssText = 'display:inline-block;direction:ltr;font-family:Cambria,serif;font-size:16pt;padding:3px 8px;border:1px solid #ddd;background:#fafafa';
+      span.setAttribute('aria-label', 'فرمول آموزشی');
+      insertNodeAtCaret(span);
+      setDirty(true);
+    }
+
+    function insertWordArt() {
+      const t = prompt('متن هنری را وارد کنید:', 'مهارت');
+      if (t === null || !t.trim()) return;
+      const span = document.createElement('span');
+      span.className = 'sim-wordart';
+      span.textContent = t;
+      insertNodeAtCaret(span);
+      setDirty(true);
+    }
+
+    function insertHyperlink() {
+      const url = prompt('آدرس کامل پیوند را وارد کنید (مثال: https://www.google.com):', 'https://www.google.com');
+      if (!url) return;
+      let safeUrl;
+      try { safeUrl = new URL(url); } catch (_) { alert('آدرس معتبر نیست. آدرس را با https:// وارد کنید.'); return; }
+      if (!['http:', 'https:', 'mailto:'].includes(safeUrl.protocol)) { alert('این نوع پیوند مجاز نیست.'); return; }
+      restoreEditorSelection();
+      const sel = window.getSelection();
+      const text = sel && !sel.isCollapsed ? sel.toString() : (prompt('متن نمایشی پیوند:', safeUrl.hostname) || safeUrl.hostname);
+      const a = document.createElement('a');
+      a.href = safeUrl.href;
+      a.textContent = text;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      insertNodeAtCaret(a);
+      setDirty(true);
+    }
+
+    function insertBookmark() {
+      const name = prompt('نام نشانک (بدون فاصله):', 'بخش_مهم');
+      if (!name) return;
+      const id = name.trim().replace(/[^a-zA-Z0-9_\-\u0600-\u06FF]/g, '_');
+      if (!id) return;
+      const span = document.createElement('span');
+      span.id = 'bookmark-' + id;
+      span.className = 'sim-bookmark';
+      span.textContent = '🔖 ' + name.trim();
+      span.title = 'نشانک آموزشی؛ برای تمرین مدیریت سند';
+      insertNodeAtCaret(span);
+      setDirty(true);
+      alert('نشانک درج شد. در این نسخه، نشانک به‌صورت علامت قابل مشاهده در متن تمرین می‌شود.');
+    }
+
+    function updateTableOfContents() {
+      const e = document.getElementById('editor');
+      const old = e.querySelector('[data-sim-toc="true"]');
+      if (old) old.remove();
+      const hs = [...e.querySelectorAll('h1,h2,h3')];
+      if (!hs.length) { alert('ابتدا چند عنوان با Heading 1 یا Heading 2 ایجاد کنید.'); return; }
+      const box = document.createElement('div');
+      box.dataset.simToc = 'true';
+      box.style.cssText = 'border:1px solid #aaa;padding:10px;margin:10px 0;background:#fafafa';
+      const title = document.createElement('strong');
+      title.textContent = 'فهرست مطالب (قابل به‌روزرسانی در شبیه‌ساز)';
+      box.appendChild(title);
+      const ol = document.createElement('ol');
+      hs.forEach((h, i) => {
+        if (!h.id) h.id = 'heading-' + (i + 1);
+        const li = document.createElement('li');
+        li.style.marginRight = (parseInt(h.tagName[1]) - 1) * 14 + 'px';
+        const a = document.createElement('a');
+        a.href = '#' + h.id;
+        a.textContent = h.innerText;
+        li.appendChild(a); ol.appendChild(li);
+      });
+      box.appendChild(ol);
+      const prior = old;
+      if (prior) prior.remove();
+      insertNodeAtCaret(box);
+      setDirty(true);
+    }
+
+    function insertSectionBreak() {
+      const div = document.createElement('div');
+      div.className = 'sim-section-break';
+      div.contentEditable = 'true';
+      div.textContent = 'شکست بخش (Section Break — شبیه‌سازی آموزشی)';
+      insertNodeAtCaret(div);
+      setDirty(true);
+      alert('نشانه شکست بخش اضافه شد. این نسخه هنوز رفتار کامل Section Break در Word را شبیه‌سازی نمی‌کند.');
+    }
+
+    function getCurrentCell() {
+      const sel = window.getSelection();
+      if (!sel || !sel.rangeCount) return null;
+      let node = sel.anchorNode;
+      if (node && node.nodeType === Node.TEXT_NODE) node = node.parentElement;
+      return node && node.closest ? node.closest('#editor td, #editor th') : null;
+    }
+
+    function addTableRow() {
+      const cell = getCurrentCell();
+      if (!cell) { alert('ابتدا داخل یکی از سلول‌های جدول کلیک کنید.'); return; }
+      const row = cell.parentElement;
+      const table = row.closest('table');
+      const newRow = row.cloneNode(true);
+      newRow.querySelectorAll('td,th').forEach(c => c.textContent = 'متن');
+      row.parentElement.insertBefore(newRow, row.nextSibling);
+      setDirty(true);
+    }
+
+    function deleteTableRow() {
+      const cell = getCurrentCell();
+      if (!cell) { alert('ابتدا داخل یکی از سلول‌های جدول کلیک کنید.'); return; }
+      const row = cell.parentElement, table = row.closest('table');
+      if (table.rows.length <= 1) { alert('جدول باید دست‌کم یک سطر داشته باشد.'); return; }
+      row.remove(); setDirty(true);
+    }
+
+    function mergeTableCells() {
+      const cell = getCurrentCell();
+      if (!cell) { alert('داخل جدول کلیک کنید. برای تمرین ادغام، دو سلول مجاور یک سطر را انتخاب کنید.'); return; }
+      const row = cell.parentElement;
+      const cells = [...row.cells];
+      const idx = cells.indexOf(cell);
+      if (idx < 0 || idx + 1 >= cells.length) { alert('سلول انتخاب‌شده، سلول مجاور برای ادغام ندارد.'); return; }
+      const next = cells[idx + 1];
+      cell.colSpan = (cell.colSpan || 1) + (next.colSpan || 1);
+      cell.textContent = (cell.textContent + ' ' + next.textContent).trim();
+      next.remove(); setDirty(true);
+    }
+
+    function splitTableCell() {
+      const cell = getCurrentCell();
+      if (!cell) { alert('ابتدا داخل سلول جدول کلیک کنید.'); return; }
+      const row = cell.parentElement;
+      const newCell = cell.cloneNode(false);
+      newCell.textContent = 'متن';
+      cell.colSpan = 1;
+      row.insertBefore(newCell, cell.nextSibling);
+      setDirty(true);
+    }
+
+    const textbookPractices = {
+      format: {
+        title: 'قالب‌بندی متن',
+        instruction: 'این جمله را در سند بنویسید: «ساختن محصولاتی که مردم دوست دارند». عبارت را ضخیم (Bold)، مورب (Italic) و زیرخط‌دار کنید؛ سپس رنگ متن را تغییر دهید.',
+        check: e => ({ ok: /ساختن محصولات|ساختن محصولاتی/.test(e.innerText) && !!e.querySelector('b,strong') && !!e.querySelector('i,em') && !!e.querySelector('u'), msg: 'بررسی: متن نمونه و قالب‌های Bold، Italic و Underline در سند جست‌وجو شد.' })
+      },
+      paragraph: {
+        title: 'پاراگراف و فهرست',
+        instruction: 'یک پاراگراف فارسی وارد کنید، راست‌چین یا Justify کنید و یک فهرست حداقل سه‌موردی بولت‌دار یا شماره‌دار بسازید.',
+        check: e => ({ ok: !!e.querySelector('ul li,ol li') && !!e.querySelector('p[style*="text-align"],div[style*="text-align"]'), msg: 'بررسی: وجود فهرست و نشانه تراز پاراگراف بررسی شد. ترازبندی بصری ممکن است در همه مرورگرها به‌طور کامل قابل تشخیص نباشد.' })
+      },
+      table: {
+        title: 'جدول هنرجویان',
+        instruction: 'یک جدول حداقل ۳ ستونی و ۳ سطری بسازید و عنوان ستون‌ها را «ردیف»، «نام و نام خانوادگی» و «کد هنرجویی» قرار دهید. سپس یک سطر اضافه کنید.',
+        check: e => ({ ok: [...e.querySelectorAll('table')].some(t => t.rows.length >= 3 && t.rows[0].cells.length >= 3), msg: 'بررسی: حداقل یک جدول با ۳ سطر و ۳ ستون جست‌وجو شد.' })
+      },
+      picture: {
+        title: 'تصویر و شکل',
+        instruction: 'از زبانه Insert یک تصویر از رایانه درج کنید و سپس یک شکل مستطیل یا دایره اضافه کنید.',
+        check: e => ({ ok: !!e.querySelector('img') && !![...e.querySelectorAll('div,span')].find(n => /background:\s*#2b579a|border-radius:\s*50%/i.test(n.getAttribute('style') || '')), msg: 'بررسی: وجود تصویر و یک شکل گرافیکی در سند جست‌وجو شد.' })
+      },
+      page: {
+        title: 'صفحه‌آرایی',
+        instruction: 'اندازه کاغذ را روی وزیری یا رقعی بگذارید، حاشیه صفحه را تغییر دهید، واترمارک «سؤالات آزمون عملی» درج کنید و شماره صفحه را اضافه کنید.',
+        check: e => ({ ok: ['Vaziri','Raghi'].includes(e.dataset.paperSize) && !!e.querySelector('#docWatermark') && /صفحه/.test(e.innerText), msg: 'بررسی: اندازه کاغذ انتخاب‌شده، واترمارک و نشانه شماره صفحه بررسی شد.' })
+      },
+      review: {
+        title: 'بازبینی و نظر',
+        instruction: 'یک جمله وارد کنید، بخشی از آن را انتخاب کنید و از Review گزینه New Comment را بزنید. سپس حالت Track Changes را روشن و خاموش کنید.',
+        check: e => ({ ok: !!e.querySelector('[data-comment],.sim-comment') && !!e.dataset.trackChanges, msg: 'بررسی: وجود یادداشت و وضعیت Track Changes بررسی شد؛ خاموش‌کردن آن ممکن است وضعیت را از بین ببرد.' })
+      },
+      toc: {
+        title: 'عنوان‌ها و فهرست مطالب',
+        instruction: 'با Heading 1 و Heading 2 حداقل دو عنوان بسازید؛ سپس References > Table of Contents را اجرا کنید و فهرست را به‌روزرسانی کنید.',
+        check: e => ({ ok: e.querySelectorAll('h1,h2,h3').length >= 2 && !!e.querySelector('[data-sim-toc="true"],a[href^="#heading-"]'), msg: 'بررسی: دو عنوان و نشانه فهرست مطالب جست‌وجو شد.' })
+      },
+      mail: {
+        title: 'ادغام پستی',
+        instruction: 'از زبانه Mailings فیلدهای «نام» و «نام خانوادگی» را وارد کنید و پیش‌نمایش نتایج را ببینید. این نسخه داده‌های نمونه دارد و به فایل Excel واقعی متصل نیست.',
+        check: e => ({ ok: e.querySelectorAll('[data-merge-field]').length >= 2, msg: 'بررسی: حداقل دو فیلد ادغام پستی در سند جست‌وجو شد.' })
+      }
+    };
+
+    function loadPractice() {
+      const key = document.getElementById('practiceSelect').value;
+      const p = textbookPractices[key];
+      document.getElementById('practiceInstructions').innerHTML = '<strong>' + p.title + '</strong><br>' + p.instruction;
+      document.getElementById('practiceFeedback').textContent = '';
+    }
+
+    function checkPractice() {
+      const key = document.getElementById('practiceSelect').value;
+      const p = textbookPractices[key];
+      const result = p.check(document.getElementById('editor'));
+      const feedback = document.getElementById('practiceFeedback');
+      feedback.textContent = (result.ok ? '✓ انجام شد — ' : '△ نیاز به تکمیل — ') + result.msg;
+      feedback.style.color = result.ok ? '#107c41' : '#a4262c';
+    }
+
+    function manageMailingList() {
+      const raw = prompt('اطلاعات نمونه گیرندگان را هر نفر در یک خط وارد کنید؛ نام و نام خانوادگی را با ویرگول جدا کنید:', 'علی,احمدی\\nسارا,محمدی');
+      if (raw === null) return;
+      window.simMailingList = raw.split(/\\n/).map(line => line.split(',').map(x => x.trim())).filter(row => row.some(Boolean));
+      alert('فهرست نمونه گیرندگان ذخیره شد: ' + window.simMailingList.length + ' نفر. اتصال به Excel/Access در این نسخه وجود ندارد.');
+    }
+
+    function createLabels() {
+      const t = prompt('متن برچسب را وارد کنید:', 'نام: علی احمدی\\nنشانی: تهران');
+      if (t === null) return;
+      const grid = document.createElement('table');
+      grid.style.cssText = 'width:100%;border-collapse:collapse;margin:10px 0';
+      for (let r=0;r<4;r++) {
+        const tr=document.createElement('tr');
+        for(let c=0;c<2;c++) {
+          const td=document.createElement('td');
+          td.style.cssText='border:1px dashed #888;width:50%;height:55px;padding:8px;vertical-align:top';
+          td.textContent=t;
+          tr.appendChild(td);
+        }
+        grid.appendChild(tr);
+      }
+      insertNodeAtCaret(grid); setDirty(true);
+    }
+
+    function createEnvelope() {
+      const to = prompt('نشانی گیرنده پاکت:', '');
+      if (to === null) return;
+      const from = prompt('نشانی فرستنده:', '');
+      if (from === null) return;
+      const d=document.createElement('div');
+      d.style.cssText='border:1px solid #888;width:240mm;max-width:100%;min-height:100mm;padding:15mm;box-sizing:border-box;margin:12px auto;position:relative';
+      const sender=document.createElement('div');sender.textContent='فرستنده: '+from;sender.style.cssText='font-size:10pt;color:#666';
+      const recipient=document.createElement('div');recipient.textContent='گیرنده: '+to;recipient.style.cssText='margin:25mm 0 0 30mm;font-size:14pt';
+      d.append(sender,recipient);insertNodeAtCaret(d);setDirty(true);
+    }
+
+    // افزودن نشانه نظر به شکل قابل تشخیص برای تمرین
+    const originalInsertComment = insertComment;
+    insertComment = function() {
+      const t = prompt('نظر آموزشی برای متن انتخاب‌شده:');
+      if (t === null) return;
+      const sel = window.getSelection();
+      if (sel && !sel.isCollapsed && sel.rangeCount) {
+        const span = document.createElement('span');
+        span.className = 'sim-comment';
+        span.dataset.comment = 'true';
+        span.title = t;
+        span.textContent = sel.toString();
+        const range = sel.getRangeAt(0);
+        range.deleteContents(); range.insertNode(span);
+        insertNodeAtCaret(document.createTextNode(''));
+      } else {
+        const span = document.createElement('span');
+        span.className = 'sim-comment'; span.dataset.comment = 'true';
+        span.textContent = '[نظر: ' + t + ']'; span.title = t;
+        insertNodeAtCaret(span);
+      }
+      setDirty(true);
+    };
+
+
     // نگه‌داشتن متن انتخاب‌شده هنگام استفاده از ابزارها و میانبرهای رایج
     document.addEventListener('keydown',e=>{
-      if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();saveDocument();}
-      if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='b'){e.preventDefault();execCmd('bold');}
-      if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='i'){e.preventDefault();execCmd('italic');}
-      if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='u'){e.preventDefault();execCmd('underline');}
+      const mod = e.ctrlKey || e.metaKey;
+      if(mod && e.key.toLowerCase()==='s'){e.preventDefault();saveDocument();}
+      if(mod && e.key.toLowerCase()==='z'){e.preventDefault();execCmd('undo');}
+      if(mod && e.key.toLowerCase()==='y'){e.preventDefault();execCmd('redo');}
+      if(mod && e.key.toLowerCase()==='b'){e.preventDefault();execCmd('bold');}
+      if(mod && e.key.toLowerCase()==='i'){e.preventDefault();execCmd('italic');}
+      if(mod && e.key.toLowerCase()==='u'){e.preventDefault();execCmd('underline');}
+      if(e.key==='Escape'){closeBackstage();hideTablePicker();}
     });
     // شمارش وضعیت در شروع و بازیابی ایمن متن تمرینی از همین نشست
     document.addEventListener('DOMContentLoaded',()=>{updateStatus();});
